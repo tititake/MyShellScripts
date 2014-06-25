@@ -57,6 +57,7 @@ fi
 cd /etc/openvpn/easy-rsa/
 chmod +rwx *
 
+sed -i s/KEY_SIZE=2048/KEY_SIZE=1024/g vars
 source ./vars
 ./clean-all
 
