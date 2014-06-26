@@ -35,7 +35,7 @@ function install_shadowsocks_libev(){
     pre_install
     download_files
     install
-	config_shadowsocks
+    config_shadowsocks
 }
 
 # Make sure only root can run our script
@@ -55,7 +55,7 @@ function pre_install(){
     #Set shadowsocks-libev config password
 
     echo "Please input password for shadowsocks-libev:"
-	read -p "Choose your Server Port (Default : $PORT):" _port
+    read -p "Choose your Server Port (Default : $PORT):" _port
     if [ "$_port" != "" ]; then
         PORT=$_port
     fi
@@ -63,9 +63,9 @@ function pre_install(){
     if [ "$_pwd" != "" ]; then
         PASSWORD=$_pwd
     fi
-	echo "####################################"
-	echo "Server IP   : $IP"
-	echo "Server Port : $PORT"
+    echo "####################################"
+    echo "Server IP   : $IP"
+    echo "Server Port : $PORT"
     echo "Password    : $PASSWORD"
     echo "####################################"
     get_char(){
@@ -103,14 +103,15 @@ function config_shadowsocks(){
     "method":"aes-256-cfb"
 }
 EOF
+
+    service shadowsocks restart
+
 }
 
 # Install 
 function install(){
     
 	apt-get install shadowsocks || error "Install shadowsocks failed!"
-    #update-rc.d shadowsocks defaults
-    /etc/init.d/shadowsocks restart   
 
 	echo ""
 	info "Congratulations, shadowsocks-libev install completed!"
