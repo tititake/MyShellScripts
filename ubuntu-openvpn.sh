@@ -32,11 +32,11 @@ echo "####################################"
 
 read -p "Press [ENTER] to continue..."
 
-dpkg-query -l openvpn openssl> /dev/null || ( \
+dpkg-query -l iptables openvpn openssl> /dev/null || ( \
 apt-get update ; \
-apt-get install openvpn openssl)
+apt-get install iptables openvpn openssl)
 
-dpkg-query -l easy-rsa > /dev/null || ( \
+dpkg-query -l easy-rsa | grep ^ii > /dev/null || ( \
 apt-get install easy-rsa)
 
 #openvpn 2.3.x with external easy-rsa
