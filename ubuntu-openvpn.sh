@@ -34,10 +34,10 @@ read -p "Press [ENTER] to continue..."
 
 dpkg-query -l iptables openvpn openssl> /dev/null || ( \
 apt-get update ; \
-apt-get install iptables openvpn openssl)
+apt-get install -y iptables openvpn openssl)
 
 dpkg-query -l easy-rsa | grep ^ii > /dev/null || ( \
-apt-get install easy-rsa)
+apt-get install -y easy-rsa)
 
 #openvpn 2.3.x with external easy-rsa
 if [ -d "/usr/share/easy-rsa/" ]; then
@@ -132,6 +132,7 @@ duplicate-cn"
 echo "$opvpn" > /etc/openvpn/openvpn.conf
 
 echo 1 > /proc/sys/net/ipv4/ip_forward
+iptables --list -t nat | grep 10.8.0.0 | grep MASQUERADE > /dev/null || \
 iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o $WANIF -j MASQUERADE
 iptables-save > /etc/iptables.conf
 echo '#!/bin/sh' > /etc/network/if-up.d/iptables
@@ -141,7 +142,7 @@ chmod +x /etc/network/if-up.d/iptables
 grep '^net.ipv4.ip_forward.*=.*1$' /etc/sysctl.conf > /dev/null || \
 echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
 
-/etc/init.d/openvpn restart
+service openvpn restart
 
 echo "OpenVPN has been installed.\n
 1) Download and Install OpenVPN software from http://openvpn.net/index.php/open-source/downloads.html.
