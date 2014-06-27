@@ -1,10 +1,7 @@
 #!/bin/bash
-# Quick and dirty OpenVPN install script
-# Tested on debian 5.0 32bit, openvz minimal debian OS template
-# and Ubuntu 9.04 32 bit minimal, should work on 64bit images as well
-# Please submit feedback and questions at support@vpsnoc.com
-
-# John Malkowski vpsnoc.com 01/18/2010
+# Quick and dirty pptp VPN install script
+# Ubuntu 12+ or Debain 7+
+# Reference http://jesin.tk/setup-pptp-vpn-server-debian-ubuntu/
 
 
 WANIF=`ip route get 8.8.8.8 | awk '{ for(f=0;f<NF;f++){if($f=="dev"){print $(f+1);exit;}} }'`
