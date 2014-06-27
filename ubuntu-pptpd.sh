@@ -33,7 +33,7 @@ read -p "Press [ENTER] to continue..."
 
 dpkg-query -l iptables pptpd> /dev/null || ( \
 apt-get update ; \
-apt-get install iptables pptpd)
+apt-get install -y iptables pptpd)
 
 pptpd_conf="
 option /etc/ppp/pptpd-options
