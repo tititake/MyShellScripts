@@ -32,12 +32,14 @@ echo "####################################"
 
 read -p "Press [ENTER] to continue..."
 
-dpkg-query -l iptables openvpn openssl> /dev/null || ( \
-apt-get update ; \
-apt-get install -y iptables openvpn openssl)
+_PKG_COUNT=`dpkg-query -l iptables expect openvpn openssl| grep -c ^ii`
+if [ $_PKG_COUNT -ne 4 ]; then
+	apt-get update
+	apt-get install -y iptables expect openvpn openssl
+fi
 
-dpkg-query -l easy-rsa | grep ^ii > /dev/null || ( \
-apt-get install -y easy-rsa)
+dpkg-query -l easy-rsa | grep ^ii > /dev/null || \
+apt-get install -y easy-rsa
 
 #openvpn 2.3.x with external easy-rsa
 if [ -d "/usr/share/easy-rsa/" ]; then
@@ -58,35 +60,81 @@ cd /etc/openvpn/easy-rsa/
 chmod +rwx *
 
 sed -i s/KEY_SIZE=2048/KEY_SIZE=1024/g vars
-source ./vars
+source ./vars > /dev/null 2>&1
 ./clean-all
 
-echo -e "\n\n\n\n\n\n\n" | ./build-ca
+echo -e "\n\n\n\n\n\n\n" | ./build-ca > /dev/null 2>&1
 
-echo "####################################"
-echo "Feel free to accept default values"
-echo "Wouldn't recommend setting a password here"
-echo "Then you'd have to type in the password each time openVPN starts/restarts"
-echo "####################################"
+if [ -s keys/ca.crt ] && [ -s keys/ca.key ] ; then
+	echo ""
+	info "Building ca... OK"
+	sleep 1
+else
+	error "Building ca... FAILED, abort.";
+fi
 
-echo ""
-info "Press [ENTER] 10 times, then press [y] 2 times..."
-echo ""
+expect -c "
+        spawn ./build-key-server server
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        expect \"\[\y\/\n\]\"
+        send \"y\r\"
+        expect \"\[\y\/\n\]\"
+        send \"y\r\"
+        expect eof" > /dev/null
 
-./build-key-server server
-./build-dh
+if [ -s keys/server.crt ] && [ -s keys/server.key ] && [ -s keys/server.csr ] ; then
+	echo ""
+	info "Building server certs... OK"
+	sleep 1
+else
+	error "Building server certs... FAILED, abort.";
+fi
+
+./build-dh > /dev/null 2>&1
+
+if [ -s keys/dh1024.pem ] ; then
+	echo ""
+	info "Generating DH parameters... OK"
+else
+	error "Generating DH parameters... FAILED, abort.";
+fi
+
 cp keys/{ca.crt,ca.key,server.crt,server.key,dh1024.pem} /etc/openvpn/
 
-echo "####################################"
-echo "Feel free to accept default values"
-echo "This is your client key, you may set a password here but it's not required"
-echo "####################################"
+expect -c "
+        spawn ./build-key $VPNUSER
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        send \"\r\"
+        expect \"\[\y\/\n\]\"
+        send \"y\r\"
+        expect \"\[\y\/\n\]\"
+        send \"y\r\"
+        expect eof" > /dev/null
 
-echo ""
-info "Press [ENTER] 10 times, then press [y] 2 times, again..."
-echo ""
-
-./build-key $VPNUSER
+if [ -s keys/$VPNUSER.crt ] && [ -s keys/$VPNUSER.key ] && [ -s keys/$VPNUSER.csr ] ; then
+	echo ""
+	info "Building client certs... OK"
+	sleep 1
+else
+	error "Building client certs... FAILED, abort.";
+fi
 
 cd keys/
 
@@ -131,6 +179,7 @@ duplicate-cn"
 
 echo "$opvpn" > /etc/openvpn/openvpn.conf
 
+
 echo 1 > /proc/sys/net/ipv4/ip_forward
 iptables --list -t nat | grep 10.8.0.0 | grep MASQUERADE > /dev/null || \
 iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o $WANIF -j MASQUERADE
@@ -142,11 +191,24 @@ chmod +x /etc/network/if-up.d/iptables
 grep '^net.ipv4.ip_forward.*=.*1$' /etc/sysctl.conf > /dev/null || \
 echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
 
-service openvpn restart
+service openvpn restart > /dev/null 2>&1
 
-echo "OpenVPN has been installed.\n
+service openvpn status > /dev/null && (
+echo ""
+info "OpenVPN service is running, installation SUCCESS."
+echo ""
+
+echo "OpenVPN has been installed.
 1) Download and Install OpenVPN software from http://openvpn.net/index.php/open-source/downloads.html.
    openvpn-install-2.3.x-I002-i686.exe or openvpn-install-2.3.x-I002-x86_64.exe.
 2) Download /root/keys.tgz using winscp or other sftp/scp client such as filezilla.
 3) Create a directory named vpn at C:\Program Files\OpenVPN\config\ and untar the content of keys.tgz there.
-4) Start openvpn-gui, right click the tray icon go to vpn and click connect."
+4) Start openvpn-gui, right click the tray icon go to vpn and click connect." 
+) || (
+echo ""
+echo "##########################################################"
+lsb_release -s -d
+dpkg-query -l iptables expect openvpn openssl easy-rsa
+echo "##########################################################"
+error "OpenVPN service is not running, something wrong happend, please report with above information."
+)
