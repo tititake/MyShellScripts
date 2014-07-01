@@ -18,6 +18,8 @@ function info() {
     echo -e "\e[0;32m $* \e[0m"
 }
 
+cat /dev/ppp 2>&1 | grep "No such device" > /dev/null || \
+error "Error : PPP is not enabled, abort."
 [[ $EUID -eq 0 ]]   || error "Error : This script must be run as root!"
 
 echo "####################################"
@@ -78,4 +80,12 @@ echo '#!/bin/sh' > /etc/network/if-up.d/iptables
 echo "iptables-restore < /etc/iptables.conf" >> /etc/network/if-up.d/iptables
 chmod +x /etc/network/if-up.d/iptables
 
+echo '#!/bin/sh' > /etc/ppp/ip-up.d/set_pptp_mtu
+echo "ifconfig ppp0 mtu 1500" >> /etc/ppp/ip-up.d/set_pptp_mtu
+chmod +x /etc/ppp/ip-up.d/set_pptp_mtu
+
 service pptpd restart
+
+netstat -anp|grep pptpd|grep 1723 > /dev/null 2>&1 && \
+info "pptpd service is running, seems everything is OK." || \
+error "pptpd service is not running, something wrong happend."
